@@ -5,13 +5,13 @@ import json
 app = Flask(__name__)
 
 # --------------------
-# Konfiguration laden
+# Load Configuration
 # --------------------
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
 # --------------------
-# GPT-Funktion
+# GPT Function
 # --------------------
 def ask_gpt_about_prompt(prompt):
     try:
@@ -22,7 +22,7 @@ def ask_gpt_about_prompt(prompt):
         payload = {
             "model": "gpt-3.5-turbo",
             "messages": [
-                {"role": "system", "content": "Du bist ein hilfreicher Sicherheitsassistent."},
+                {"role": "system", "content": "You are a helpful security assistant."},
                 {"role": "user", "content": prompt}
             ]
         }
@@ -30,16 +30,16 @@ def ask_gpt_about_prompt(prompt):
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        return f"Fehler bei GPT: {str(e)}"
+        return f"GPT Error: {str(e)}"
 
 # --------------------
-# HTML-Template
+# HTML Template
 # --------------------
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Scan & GPT</title>
+    <title>AI Scan with GPT Integration</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Open Sans', sans-serif; background-color: #1B1F3B; color: #f0f0f0; padding: 40px; }
@@ -67,24 +67,24 @@ HTML_TEMPLATE = """
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.svg') }}" alt="Palo Alto Networks Logo">
         </div>
-        <h1>AI Scan mit GPT-Erweiterung</h1>
+        <h1>AI Scan with GPT Extension</h1>
         <form method="post">
-            <label for="prompt">Wähle eine Beispiel-Frage oder gib eine eigene ein:</label><br>
+            <label for="prompt">Select a predefined example or enter your own:</label><br>
             <select onchange="document.getElementById('prompt').value = this.value">
-                <option value="">-- vordefinierte Beispiele --</option>
+                <option value="">-- Predefined Examples --</option>
                 {% for item in default_urls %}
                 <option value="{{ item.url }}">{{ item.label }}</option>
                 {% endfor %}
             </select>
-            <input type="text" id="prompt" name="prompt" placeholder="z. B. Wie sicher ist facebook.com?" required>
-            <input type="submit" value="Scannen & Auswerten">
+            <input type="text" id="prompt" name="prompt" placeholder="e.g., How secure is facebook.com?" required>
+            <input type="submit" value="Scan & Analyze">
         </form>
 
         {% if result %}
         <div class="result">
-            <h2>Scan-Ergebnis</h2>
-            <div class="field"><span class="label">Aktion:</span> {{ result.action }}</div>
-            <div class="field"><span class="label">Kategorie:</span> 
+            <h2>Scan Result</h2>
+            <div class="field"><span class="label">Action:</span> {{ result.action }}</div>
+            <div class="field"><span class="label">Category:</span> 
                 <span class="
                     {% if result.category.lower() == 'malicious' %}category-danger
                     {% elif result.category.lower() in ['suspicious', 'phishing', 'proxy-avoidance'] %}category-warning
@@ -92,20 +92,20 @@ HTML_TEMPLATE = """
                     {{ result.category }}
                 </span>
             </div>
-            <div class="field"><span class="label">Erkannter Prompt:</span> {{ result.prompt_detected }}</div>
-            <div class="field"><span class="label">Rohwert aus API:</span> <pre>{{ result.raw_prompt_detected }}</pre></div>
+            <div class="field"><span class="label">Detected Prompt:</span> {{ result.prompt_detected }}</div>
+            <div class="field"><span class="label">Raw API Response:</span> <pre>{{ result.raw_prompt_detected }}</pre></div>
         </div>
         {% endif %}
 
         {% if gpt %}
         <div class="gpt">
-            <h2>ChatGPT-Auswertung</h2>
+            <h2>ChatGPT Analysis</h2>
             <pre>{{ gpt }}</pre>
         </div>
         {% endif %}
 
         {% if error %}
-        <div class="error"><strong>Fehler:</strong> {{ error }}</div>
+        <div class="error"><strong>Error:</strong> {{ error }}</div>
         {% endif %}
 
         <div class="footer">
@@ -117,7 +117,7 @@ HTML_TEMPLATE = """
 """
 
 # --------------------
-# Haupt-Route
+# Main Route
 # --------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -128,10 +128,10 @@ def index():
     if request.method == "POST":
         user_prompt = request.form.get("prompt")
         if not user_prompt:
-            error = "Bitte gib einen Text oder eine Frage ein."
+            error = "Please enter a prompt or question."
         else:
             try:
-                url = 'https://service.api.aisecurity.paloaltonetworks.com/v1/scan/sync/request'
+                api_url = 'https://service.api.aisecurity.paloaltonetworks.com/v1/scan/sync/request'
                 headers = {
                     'Content-Type': 'application/json',
                     'x-pan-token': config["x_pan_token"]
@@ -147,7 +147,7 @@ def index():
                     "ai_profile": {"profile_name": "felix_test_profile"}
                 }
 
-                response = requests.post(url, headers=headers, json=data)
+                response = requests.post(api_url, headers=headers, json=data)
                 response.raise_for_status()
                 json_result = response.json()
 
@@ -172,7 +172,7 @@ def index():
                     "raw_prompt_detected": raw_prompt_detected
                 }
 
-                # GPT nur, wenn Kategorie nicht kritisch ist
+                # Only run GPT if category is not blocked
                 blocked_categories = ["malicious", "suspicious", "phishing"]
                 if result["action"] == "allow" and category.lower() not in blocked_categories:
                     gpt_summary = ask_gpt_about_prompt(user_prompt)
@@ -189,4 +189,5 @@ def index():
     )
 
 if __name__ == "__main__":
-        app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
