@@ -1,0 +1,11 @@
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtuelle Umgebung
+venv/
+
+# Sensible Daten
+config.json
+
