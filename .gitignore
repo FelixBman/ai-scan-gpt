@@ -7,5 +7,5 @@ __pycache__/
 .venv/
 
 # Sensible Daten
-config.json
+docker-compose-live.yaml
 

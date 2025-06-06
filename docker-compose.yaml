@@ -9,6 +9,11 @@ services:
       PALOALTOAIRSPROFILE: "profile"
       PALOALTOAIRSTOKEN: "abc"
       OPENAPITOKEN: "abc"
+      PALOALTOAPPNAME: demo-app
+      PALOALTOAPPUSER: "demo@demo.com"
+      # Optional
+      # OPENAPIURL: "https://SomeOpenAICompatibleURL"
+      # OPENAPIMODEL: Your-Model
     ports:
       - 5000:5000
     restart: unless-stopped
