@@ -1,0 +1,14 @@
+---
+services:
+  ai-scan-gpt:
+    build: .
+    container_name: ai-scan-gpt
+    security_opt:
+      - seccomp:unconfined #optional
+    environment: 
+      PALOALTOAIRSPROFILE: "profile"
+      PALOALTOAIRSTOKEN: "abc"
+      OPENAPITOKEN: "abc"
+    ports:
+      - 5000:5000
+    restart: unless-stopped

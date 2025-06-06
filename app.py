@@ -1,6 +1,7 @@
 from flask import Flask, render_template_string, request, url_for
 import requests
 import json
+import os
 
 app = Flask(__name__)
 
@@ -10,13 +11,18 @@ app = Flask(__name__)
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
+openai_api_key = os.environ["OPENAPITOKEN"]
+x_pan_token = os.environ["PALOALTOAIRSTOKEN"]
+pan_profil_name = os.environ["PALOALTOAIRSPROFILE"]
+openai_api_url = os.environ.get('OPENAPIURL', "https://api.openai.com/v1/chat/completions")
+
 # --------------------
 # GPT Function
 # --------------------
 def ask_gpt_about_prompt(prompt):
     try:
         headers = {
-            "Authorization": f"Bearer {config['openai_api_key']}",
+            "Authorization": f"Bearer {openai_api_key}",
             "Content-Type": "application/json"
         }
         payload = {
@@ -26,7 +32,7 @@ def ask_gpt_about_prompt(prompt):
                 {"role": "user", "content": prompt}
             ]
         }
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response = requests.post(OPENAPIURL, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
@@ -134,7 +140,7 @@ def index():
                 api_url = 'https://service.api.aisecurity.paloaltonetworks.com/v1/scan/sync/request'
                 headers = {
                     'Content-Type': 'application/json',
-                    'x-pan-token': config["x_pan_token"]
+                    'x-pan-token': x_pan_token
                 }
                 data = {
                     "metadata": {
@@ -144,7 +150,7 @@ def index():
                     },
                     "contents": [{"prompt": user_prompt}],
                     "tr_id": "1234",
-                    "ai_profile": {"profile_name": "felix_test_profile"}
+                    "ai_profile": {"profile_name": pan_profil_name}
                 }
 
                 response = requests.post(api_url, headers=headers, json=data)
