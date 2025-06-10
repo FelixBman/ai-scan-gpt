@@ -4,8 +4,8 @@ __pycache__/
 *.pyo
 
 # Virtuelle Umgebung
-venv/
+.venv/
 
 # Sensible Daten
-config.json
+docker-compose-live.yaml
 

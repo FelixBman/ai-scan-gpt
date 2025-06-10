@@ -1,0 +1,19 @@
+---
+services:
+  ai-scan-gpt:
+    build: .
+    container_name: ai-scan-gpt
+    security_opt:
+      - seccomp:unconfined #optional
+    environment: 
+      PALOALTOAIRSPROFILE: "profile"
+      PALOALTOAIRSTOKEN: "abc"
+      OPENAPITOKEN: "abc"
+      PALOALTOAPPNAME: demo-app
+      PALOALTOAPPUSER: "demo@demo.com"
+      # Optional
+      # OPENAPIURL: "https://SomeOpenAICompatibleURL"
+      # OPENAPIMODEL: Your-Model
+    ports:
+      - 5000:5000
+    restart: unless-stopped
