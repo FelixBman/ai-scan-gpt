@@ -49,6 +49,55 @@ def ask_gpt_about_prompt(prompt):
     except Exception as e:
         return f"GPT Error: {str(e)}"
 
+
+def ask_pan_about_prompt(user_prompt):
+    try:
+        # Initialize the SDK with your API Key
+        aisecurity.init(api_key=pan_api_token)
+
+        # Configure an AI Profile
+        ai_profile = AiProfile(profile_name=pan_profil_name)
+        
+        # Create a Scanner
+        scanner = Scanner()
+
+        scan_response = scanner.sync_scan(
+        ai_profile=ai_profile,
+        content=Content(
+            prompt = user_prompt
+        ),
+        )
+        # See API documentation for response structure
+        # https://pan.dev/ai-runtime-security/api/scan-sync-request/
+        # Convert the scan_response to a dictionary and then to a JSON string
+        json_result = scan_response.to_dict()
+
+        # Get some Metadata for Transparency
+        pd_raw = json_result.get("prompt_detected", "")
+        raw_prompt_detected = pd_raw
+
+        if isinstance(pd_raw, str):
+            pd = pd_raw.strip()
+        elif isinstance(pd_raw, dict):
+            pd = pd_raw.get("text", "").strip()
+        else:
+            pd = ""
+
+        if pd.lower() == "url" or not pd:
+            pd = user_prompt
+        # prepare Output
+        category = json_result.get("category", "—")
+        result = {
+            "action": json_result.get("action", "—"),
+            "category": category,
+            "prompt_detected": pd,
+            "raw_prompt_detected": raw_prompt_detected
+        }
+        return result
+
+    except Exception as e:
+        return f"Palo Alto API Error: {str(e)}"
+
 # --------------------
 # Main Route
 # --------------------
@@ -57,64 +106,25 @@ def index():
     result = None
     error = None
     gpt_summary = None
+    pan_result = None
 
     if request.method == "POST":
         user_prompt = request.form.get("prompt")
         if not user_prompt:
             error = "Please enter a prompt or question."
         else:
-            try:
-                # Initialize the SDK with your API Key
-                aisecurity.init(api_key=pan_api_token)
-
-                # Configure an AI Profile
-                ai_profile = AiProfile(profile_name=pan_profil_name)
-
-                # Create a Scanner
-                scanner = Scanner()
-                scan_response = scanner.sync_scan(
-                ai_profile=ai_profile,
-                content=Content(
-                    prompt = user_prompt ,
-                    response="Questionable Model Response Text",
-                ),
-                )
-                # See API documentation for response structure
-                # https://pan.dev/ai-runtime-security/api/scan-sync-request/
-                # Convert the scan_response to a dictionary and then to a JSON string
-                json_result = scan_response.to_dict()
-
-                pd_raw = json_result.get("prompt_detected", "")
-                raw_prompt_detected = pd_raw
-
-                if isinstance(pd_raw, str):
-                    pd = pd_raw.strip()
-                elif isinstance(pd_raw, dict):
-                    pd = pd_raw.get("text", "").strip()
-                else:
-                    pd = ""
-
-                if pd.lower() == "url" or not pd:
-                    pd = user_prompt
-
-                category = json_result.get("category", "—")
-                result = {
-                    "action": json_result.get("action", "—"),
-                    "category": category,
-                    "prompt_detected": pd,
-                    "raw_prompt_detected": raw_prompt_detected
-                }
-
-                # Only run GPT if action is allow
-                if result["action"] == "allow":
+            pan_result = ask_pan_about_prompt(user_prompt)
+            # Only run GPT if action is allow
+            if isinstance (pan_result,str):
+                error = pan_result
+            else: 
+                if pan_result["action"] == "allow":
                     gpt_summary = ask_gpt_about_prompt(user_prompt)
-
-            except Exception as e:
-                error = f"Palo Alto API Error: {str(e)}"
+            
 
     return render_template(
         "./template.html",
-        result=result,
+        result=pan_result,
         error=error,
         gpt=gpt_summary,
         default_urls=config.get("default_urls", [])
